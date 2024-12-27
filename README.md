@@ -12,19 +12,19 @@ DentalAI projesi, diş sağlığıyla ilgili görsel ve metinsel verilerin anali
 * Kullanılan Teknolojiler ve Modeller
 
   1. CLIP (openai/clip-vit-large-patch14-336)
-    - Görsel ve metin uyumu analiz edilir.
-    - Hastaların yorumları ve ilgili diş görselleri eşleştirilir.
+      - Görsel ve metin uyumu analiz edilir.
+      - Hastaların yorumları ve ilgili diş görselleri eşleştirilir.
   2. GPT-4 (OpenAI)
-    - Hasta şikayetleri metin olarak analiz edilir.
-    - GPT-4 modeli tedavi önerileri sunar.
+      - Hasta şikayetleri metin olarak analiz edilir.
+      - GPT-4 modeli tedavi önerileri sunar.
   3. AYA (aya-expanse-32b)
-    - Alternatif olarak AYA modeliyle de tedavi önerileri oluşturulur.
+      - Alternatif olarak AYA modeliyle de tedavi önerileri oluşturulur.
   4. Pandas & OpenPyXL
-    - Excel veri setlerinin okunması, temizlenmesi ve çıktıların kaydedilmesi.
+      - Excel veri setlerinin okunması, temizlenmesi ve çıktıların kaydedilmesi.
   5. PyTorch & Transformers
-    - Modellerin yüklenmesi ve çalıştırılması için PyTorch ve Transformers kütüphaneleri kullanıldı.
+      - Modellerin yüklenmesi ve çalıştırılması için PyTorch ve Transformers kütüphaneleri kullanıldı.
   6. Pillow (PIL)
-    - Görsellerin işlenmesi ve boyutlandırılması sağlandı.
+      - Görsellerin işlenmesi ve boyutlandırılması sağlandı.
 
 * Veri Seti (Excel)
   
