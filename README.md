@@ -45,17 +45,6 @@ Tedavi Önerileri:
   - GPT-4 ile tedavi önerileri oluşturulur.
   - Alternatif olarak AYA modeli de kullanılabilir.
   - Sonuçların Kaydedilmesi: Excel dosyası olarak çıktı alınır.
-    
-* Proje Yapısı
-
-/dentalAI
-│
-├── dentalAI-GPT-4.py       # GPT-4 ve CLIP ile analiz
-├── dentalAI-AYA.py         # AYA ve CLIP ile analiz
-├── dental-csv-excel.xlsx   # Örnek veri seti
-├── cleaned_data.xlsx       # İşlenmiş veri çıktısı
-├── /images                # Görsel veri klasörü
-└── README.md              # Proje açıklama dosyası
 
 * Çalıştırma Talimatları
 
