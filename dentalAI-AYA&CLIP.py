@@ -1,3 +1,4 @@
+#OpenAI CLIP&Aya-Expanse-32B
 import os
 import pandas as pd
 from transformers import CLIPProcessor, CLIPModel, AutoTokenizer, AutoModelForCausalLM
