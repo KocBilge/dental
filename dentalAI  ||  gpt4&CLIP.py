@@ -122,7 +122,7 @@ class DentalAnalysis:
                 self.treatment_suggestions.append("Bilgi yetersiz")
 
     def save_results(self):
-        """💾 Sonuçları Excel dosyasına kaydet."""
+        """ Sonuçları Excel dosyasına kaydet."""
         self.data_cleaned['Alignment Score'] = self.alignment_scores
         self.data_cleaned['Treatment Suggestion'] = self.treatment_suggestions
         self.data_cleaned.to_excel(self.output_path, index=False)
