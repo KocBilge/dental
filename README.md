@@ -58,12 +58,10 @@ Tedavi Önerileri:
   1. Gerekli Paketleri Yükleyin:
       - pip install -r requirements.txt
   2. Ortam Değişkenlerini Ayarlayın:
-      - export OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
+      - export OPENAI_API_KEY="api_key"
   3. Proje Betiklerini Çalıştırın:
-      - GPT-4 ve CLIP:
-      - python dentalAI-GPT-4.py
-      - AYA ve CLIP:
-      - python dentalAI-AYA.py
+      - GPT-4 ve CLIP: python dentalAI || gpt4&CLIP.py
+      - AYA ve CLIP:   python dentalAI || AYA&CLIP.py
   4. Sonuçları İnceleyin:
       - Sonuçlar cleaned_data.xlsx dosyasında bulunur.
 
