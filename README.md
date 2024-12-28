@@ -1,6 +1,6 @@
 DentalAI: Diş Sağlığı Analiz ve Tedavi Öneri Sistemi
 
-DentalAI projesi, diş sağlığıyla ilgili görsel ve metinsel verilerin analiz edilmesi, yorumlanması ve tedavi önerilerinin oluşturulması amacıyla geliştirilmiş bir yapay zeka çözümüdür. Bu proje, CLIP, GPT-4, ve AYA modellerini kullanarak diş sağlığı verilerini işler, analiz eder ve öneriler sunar.
+DentalAI projesi, diş sağlığıyla ilgili görsel ve metinsel verilerin analiz edilmesi, yorumlanması ve tedavi önerilerinin oluşturulması amacıyla geliştirilmiş bir yapay zeka çözümüdür. Bu proje, CLIP, GPT-4, ve AYA modellerini kullanarak diş sağlığı verilerini işler, analiz eder ve öneriler sunar. Ayrıca BLEU ve ROUGE skorlarını kullanarak önerilerin doğruluğunu ve tutarlılığını ölçer.
 
 * Projenin Amacı
   
@@ -8,6 +8,7 @@ DentalAI projesi, diş sağlığıyla ilgili görsel ve metinsel verilerin anali
     - Hasta yorumları ve şikayetleri üzerinden tedavi önerileri oluşturmak.
     - Yapay zeka modelleriyle hızlı ve doğru tedavi önerileri sunmak.
     - Excel veri setlerini analiz edip anlamlı çıktılar sağlamak.
+    - BLEU ve ROUGE skorlarıyla tedavi öneri metinlerinin kalite analizini gerçekleştirmek.
 
 * Kullanılan Teknolojiler ve Modeller
 
@@ -25,6 +26,9 @@ DentalAI projesi, diş sağlığıyla ilgili görsel ve metinsel verilerin anali
       - Modellerin yüklenmesi ve çalıştırılması için PyTorch ve Transformers kütüphaneleri kullanıldı.
   6. Pillow (PIL)
       - Görsellerin işlenmesi ve boyutlandırılması sağlandı.
+  7. BLEU & ROUGE
+      - BLEU: Öneri metninin referans metne ne kadar yakın olduğunu ölçer.
+      - ROUGE: Öneri metninin anlam ve kelime örtüşme seviyesini ölçer.
 
 * Veri Seti (Excel)
   
@@ -32,6 +36,8 @@ DentalAI projesi, diş sağlığıyla ilgili görsel ve metinsel verilerin anali
   - Comment: Hastanın şikayet açıklaması.
   - Alignment Score: Görsel ve metin eşleşme uyumu.
   - Treatment Suggestion: Yapay zeka tarafından önerilen tedavi yöntemi.
+  - BLEU Score: Öneri metninin referans metne olan benzerlik skoru.
+  - ROUGE Score: Öneri metninin referans metinle anlam ve kelime örtüşme skoru.
     
 ⚙ Çalışma Akışı
 
@@ -40,6 +46,7 @@ Veri Seti Yükleme:
   - Görsel Kontrol: Eksik görseller tespit edilir ve raporlanır.
   - Görsel İşleme: Görseller yeniden boyutlandırılır ve analiz için hazırlanır.
   - CLIP Analizi: Görseller ve yorumlar eşleştirilir ve uyum skorları hesaplanır.
+  - BLEU ve ROUGE Skorlarının Hesaplanması: BLEU ve ROUGE skorları hesaplanarak öneri metinlerinin kalitesi analiz edilir.
 
 Tedavi Önerileri:
   - GPT-4 ile tedavi önerileri oluşturulur.
@@ -49,16 +56,16 @@ Tedavi Önerileri:
 * Çalıştırma Talimatları
 
   1. Gerekli Paketleri Yükleyin:
-    pip install -r requirements.txt
+      - pip install -r requirements.txt
   2. Ortam Değişkenlerini Ayarlayın:
-    export OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
+      - export OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
   3. Proje Betiklerini Çalıştırın:
-    GPT-4 ve CLIP:
-    python dentalAI-GPT-4.py
-    AYA ve CLIP:
-    python dentalAI-AYA.py
+      - GPT-4 ve CLIP:
+      - python dentalAI-GPT-4.py
+      - AYA ve CLIP:
+      - python dentalAI-AYA.py
   4. Sonuçları İnceleyin:
-    Sonuçlar cleaned_data.xlsx dosyasında bulunur.
+      - Sonuçlar cleaned_data.xlsx dosyasında bulunur.
 
 * Sonuç
 
