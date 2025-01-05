@@ -26,12 +26,11 @@ os.environ["HF_HUB_CHUNK_SIZE"] = "1048576"  # 1 MB
 
 torch.multiprocessing.set_start_method("spawn", force=True)
 
-# API anahtarını ortam değişkeninden al
-openai.api_key = os.getenv("api_key")
+# OpenAI API anahtarını tanımla
+openai.api_key = ""
 
 if not openai.api_key:
-    openai.api_key = "TEST"
-
+    raise ValueError("OpenAI API key is not set. Please set 'OPENAI_API_KEY' as an environment variable.")
 
 class DentalAnalysis:
 
@@ -48,13 +47,11 @@ class DentalAnalysis:
         self.rouge_score = None
 
     def load_and_clean_data(self):
-        #Excel veri setini yükle ve temizle.
         self.data = pd.read_excel(self.data_path, header=1)
-        self.data_cleaned = self.data.dropna()
+        self.data_cleaned = self.data.dropna(subset=['Comment'])
         print(f"\nTemizlenmiş Veri Seti Boyutu: {self.data_cleaned.shape[0]} satır")
 
     def check_images(self):
-        #Görsellerin varlığını kontrol et.
         print("\nGörseller kontrol ediliyor...")
         for image_name in self.data_cleaned['Image']:
             full_path = os.path.join(self.image_folder, image_name)
@@ -65,7 +62,6 @@ class DentalAnalysis:
             print(f"\nEksik Görseller Listesi: {self.missing_images}")
 
     def preprocess_images(self):
-        #Görselleri yeniden boyutlandır ve hazırla.
         print("\nGörseller işleniyor...")
         for image_name in self.data_cleaned['Image']:
             if image_name in self.missing_images:
@@ -80,7 +76,6 @@ class DentalAnalysis:
                 self.missing_images.append(image_name)
 
     def analyze_alignment(self):
-        #CLIP modeliyle görsel-metin uyumu analizi.
         print("\nGörsel-Metin Uyum Analizi Başlıyor...")
         model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14-336")
         processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14-336")
@@ -102,12 +97,25 @@ class DentalAnalysis:
                 self.alignment_scores.append(None)
 
     def generate_treatment_suggestions(self):
-        #OpenAI GPT-4 API kullanarak tedavi önerileri oluştur.
         print("\nTedavi Önerileri Oluşturuluyor...")
 
-        for comment in self.data_cleaned['Comment']:
+        few_shot_examples = [
+            {"role": "user", "content": "Diş ağrısı ve hassasiyet var."},
+            {"role": "assistant", "content": "Diş ağrısını azaltmak için sıcak-soğuk hassasiyetini azaltan diş macunu kullanın."}
+        ]
+
+        for i, comment in enumerate(self.data_cleaned['Comment']):
             try:
-                response = openai.ChatCompletion.create(
+                messages = [
+                    {"role": "system", "content": "Sen bir diş hekimi asistanısın ve hastalara tedavi önerileri sunuyorsun."}
+                ]
+
+                if i % 5 == 0:  # Few-Shot her 5 yorumda bir kullanılır
+                    messages.extend(few_shot_examples)
+
+                messages.append({"role": "user", "content": f"Hasta şikayet: {comment}\nTedavi önerisi:"})
+
+                response = openai.chat.completions.create(  # Doğru yöntem
                     model="gpt-4",
                     messages=[
                         {"role": "system", "content": "Sen bir diş hekimi asistanısın ve hastalara tedavi önerileri sunuyorsun."},
@@ -116,41 +124,26 @@ class DentalAnalysis:
                     max_tokens=100,
                     temperature=0.3
                 )
+
                 suggestion = response['choices'][0]['message']['content'].strip()
                 self.treatment_suggestions.append(suggestion)
+                print(f"Tedavi Önerisi: {suggestion}")
             except Exception as e:
                 print(f"Tedavi Önerisi Hatası: {e}")
                 self.treatment_suggestions.append("Bilgi yetersiz")
 
-    def calculate_metrics(self):
-        #BLEU ve ROUGE skorlarını hesapla.
-        print("\nBLEU ve ROUGE Skorları Hesaplanıyor...")
-        bleu = load("bleu")
-        rouge = load("rouge")
-
-        references = self.data_cleaned['Reference Suggestion'].fillna("").tolist()
-        predictions = self.treatment_suggestions
-
-        self.bleu_score = bleu.compute(predictions=predictions, references=references)['bleu']
-        self.rouge_score = rouge.compute(predictions=predictions, references=references)
-        print(f"BLEU Skoru: {self.bleu_score:.4f}")
-        print(f"ROUGE Skorları: {self.rouge_score}")
-
     def save_results(self):
-        #Sonuçları Excel dosyasına kaydet.
         self.data_cleaned['Alignment Score'] = self.alignment_scores
         self.data_cleaned['Treatment Suggestion'] = self.treatment_suggestions
         self.data_cleaned.to_excel(self.output_path, index=False)
         print(f"\nSonuçlar başarıyla kaydedildi: {self.output_path}")
 
     def run(self):
-        #Analiz sürecini çalıştır.
         self.load_and_clean_data()
         self.check_images()
         self.preprocess_images()
         self.analyze_alignment()
         self.generate_treatment_suggestions()
-        self.calculate_metrics()
         self.save_results()
 
 
