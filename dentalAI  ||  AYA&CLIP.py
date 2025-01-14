@@ -13,12 +13,17 @@ import torch.multiprocessing as mp
 gc.collect()
 torch.cuda.empty_cache()
 
+# TensorFlow bilgi mesajlarını kapama
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 # Multiprocessing başlangıç yöntemi
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["PYTHONWARNINGS"] = "ignore"
 mp.set_start_method("spawn", force=True)
 
-device = torch.device("cpu")
+# GPU kullanımı
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Cihaz: {device}")
 
 warnings.filterwarnings("ignore", category=UserWarning, message="resource_tracker: There appear to be .* leaked semaphore objects")
 warnings.filterwarnings("ignore", category=UserWarning, message="Current model requires .* bytes of buffer")
@@ -109,8 +114,8 @@ class DentalAnalysis:
 
     def generate_treatment_suggestions(self):
         print("\nTedavi Önerileri Oluşturuluyor...")
-        model_path = "/Users/bilge/Downloads/aya-expanse-32b"
-        
+        model_path = "C:\\Users\\User\\Downloads\\aya-expanse-32b"
+
         if not os.path.exists(model_path):
             print("Model yerel olarak bulunamadı. Lütfen modeli manuel olarak indirin.")
             self.treatment_suggestions = ["Model Bulunamadı"] * len(self.data_cleaned)
@@ -123,7 +128,8 @@ class DentalAnalysis:
             try:
                 input_text = f"Hasta şikayet: {comment}\nTedavi önerisi:"
                 input_ids = tokenizer.encode(input_text, return_tensors="pt").to(device)
-                gen_tokens = model.generate(input_ids, max_new_tokens=100, do_sample=True, temperature=0.7)
+                # İşlem süresini azaltmak için max_new_tokens ayarlandı
+                gen_tokens = model.generate(input_ids, max_new_tokens=50, do_sample=True, temperature=0.7)
                 suggestion = tokenizer.decode(gen_tokens[0], skip_special_tokens=True)
                 suggestion = suggestion.split("Tedavi önerisi:")[-1].strip()
                 self.treatment_suggestions.append(suggestion if suggestion else "Tedavi önerisi bulunamadı.")
@@ -157,9 +163,9 @@ class DentalAnalysis:
 if __name__ == "__main__":
     TOKEN = ""
     analysis = DentalAnalysis(
-        data_path='/Users/bilge/Desktop/dental-csv-excel.xlsx',
-        image_folder="/Users/bilge/Desktop/dental_project.v1i.yolov11/train/images",
-        output_path="/Users/bilge/Desktop/cleaned_data_with_results.xlsx",
+        data_path="C:\\Users\\User\\Downloads\\dental-csv-excel.xlsx",
+        image_folder="C:\\Users\\User\\Downloads\\dental_project.v1i.yolov11\\train\\images",
+        output_path="C:\\Users\\User\\Downloads\\cleaned_data_with_results.xlsx",
         token=TOKEN
     )
     analysis.run()
