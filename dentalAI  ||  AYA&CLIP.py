@@ -161,7 +161,7 @@ class DentalAnalysis:
 
 
 if __name__ == "__main__":
-    TOKEN = ""
+    TOKEN = "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"
     analysis = DentalAnalysis(
         data_path="C:\\Users\\User\\Downloads\\dental-csv-excel.xlsx",
         image_folder="C:\\Users\\User\\Downloads\\dental_project.v1i.yolov11\\train\\images",
