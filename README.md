@@ -39,7 +39,7 @@ DentalAI projesi, diş sağlığıyla ilgili görsel ve metinsel verilerin anali
   - BLEU Score: Öneri metninin referans metne olan benzerlik skoru.
   - ROUGE Score: Öneri metninin referans metinle anlam ve kelime örtüşme skoru.
     
-⚙ Çalışma Akışı
+Çalışma Akışı
 
 Veri Seti Yükleme: 
   - Excel verileri yüklenir ve temizlenir.
