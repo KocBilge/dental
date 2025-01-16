@@ -2,11 +2,11 @@ import os
 import pandas as pd
 from transformers import CLIPProcessor, CLIPModel, AutoTokenizer, AutoModelForCausalLM
 from PIL import Image, UnidentifiedImageError
-from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from rouge import Rouge
 import torch
 import warnings
 import gc
+import psutil
+import time
 import torch.multiprocessing as mp
 
 # Bellek ve GPU önbelleği temizleme
@@ -33,11 +33,22 @@ warnings.filterwarnings("ignore", category=UserWarning, message="for model.layer
 os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = "14400"
 os.environ["HF_HUB_CHUNK_SIZE"] = "1048576"  # 1 MB
 
-
 def cleanup():
     gc.collect()
     torch.cuda.empty_cache()
 
+def log_memory_usage():
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    print(f"Anlık Bellek Kullanımı: {memory_info.rss / (1024 * 1024):.2f} MB")
+
+def monitor_resources():
+    process = psutil.Process()
+    while True:
+        memory_usage = process.memory_info().rss / (1024 * 1024)  # MB
+        cpu_usage = psutil.cpu_percent(interval=1)
+        print(f"Anlık Bellek Kullanımı: {memory_usage:.2f} MB | CPU Kullanımı: {cpu_usage}%")
+        time.sleep(2)
 
 class DentalAnalysis:
     def __init__(self, data_path, image_folder, output_path, token):
@@ -50,13 +61,10 @@ class DentalAnalysis:
         self.alignment_scores = []
         self.missing_images = []
         self.treatment_suggestions = []
-        self.bleu_scores = []
-        self.rouge_scores = []
-        self.few_shot_count = 0
-        self.zero_shot_count = 0
 
     def load_and_clean_data(self):
         print("\nVeri seti yükleniyor ve temizleniyor...")
+        log_memory_usage()
         self.data = pd.read_excel(self.data_path, header=1)
         self.data_cleaned = self.data.dropna()
         print(f"Temizlenmiş Veri Seti Boyutu: {self.data_cleaned.shape[0]} satır")
@@ -73,6 +81,7 @@ class DentalAnalysis:
 
     def preprocess_images(self):
         print("\nGörseller işleniyor...")
+        log_memory_usage()
         for image_name in self.data_cleaned['Image']:
             if image_name in self.missing_images:
                 continue
@@ -86,7 +95,8 @@ class DentalAnalysis:
                 self.missing_images.append(image_name)
 
     def analyze_alignment(self):
-        print("\n Görsel-Metin Uyum Analizi Başlıyor...")
+        print("\nGörsel-Metin Uyum Analizi Başlıyor...")
+        log_memory_usage()
         model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14-336")
         processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14-336")
         for image_name, comment in zip(self.data_cleaned['Image'], self.data_cleaned['Comment']):
@@ -102,12 +112,6 @@ class DentalAnalysis:
                 probs = logits_per_image.softmax(dim=1).max().item()
                 self.alignment_scores.append(probs)
                 print(f"Görsel: {image_name} - Uyum Skoru: {probs:.4f}")
-
-                if probs > 0.5:
-                    self.few_shot_count += 1
-                else:
-                    self.zero_shot_count += 1
-
             except Exception as e:
                 print(f"Görsel Yükleme Hatası ({image_name}): {e}")
                 self.alignment_scores.append(None)
@@ -115,40 +119,48 @@ class DentalAnalysis:
     def generate_treatment_suggestions(self):
         print("\nTedavi Önerileri Oluşturuluyor...")
         model_path = "C:\\Users\\User\\Downloads\\aya-expanse-32b"
-
         if not os.path.exists(model_path):
             print("Model yerel olarak bulunamadı. Lütfen modeli manuel olarak indirin.")
             self.treatment_suggestions = ["Model Bulunamadı"] * len(self.data_cleaned)
             return
 
+        print("Tokenizer yükleniyor...")
         tokenizer = AutoTokenizer.from_pretrained(model_path)
-        model = AutoModelForCausalLM.from_pretrained(model_path).to(device)
+        print("Tokenizer başarıyla yüklendi.")
 
-        for comment in self.data_cleaned['Comment']:
-            try:
-                input_text = f"Hasta şikayet: {comment}\nTedavi önerisi:"
-                input_ids = tokenizer.encode(input_text, return_tensors="pt").to(device)
-                # İşlem süresini azaltmak için max_new_tokens ayarlandı
-                gen_tokens = model.generate(input_ids, max_new_tokens=50, do_sample=True, temperature=0.7)
-                suggestion = tokenizer.decode(gen_tokens[0], skip_special_tokens=True)
-                suggestion = suggestion.split("Tedavi önerisi:")[-1].strip()
-                self.treatment_suggestions.append(suggestion if suggestion else "Tedavi önerisi bulunamadı.")
-            except Exception as e:
-                print(f"Tedavi Önerisi Hatası: {e}")
-                self.treatment_suggestions.append("Bilgi yetersiz")
+        print("Model yüklenmeye başlanıyor (disk_offload kullanılarak)...")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            offload_folder="offload",
+            trust_remote_code=True
+        )
+        print("Model yüklemesi tamamlandı.")
 
-        del tokenizer
-        del model
-        cleanup()
+        batch_size = 10
+        for i in range(0, len(self.data_cleaned), batch_size):
+            batch = self.data_cleaned.iloc[i:i + batch_size]
+            for idx, comment in enumerate(batch['Comment']):
+                try:
+                    print(f"[{i+idx+1}/{len(self.data_cleaned)}] Şu anda işlenen yorum: {comment[:50]}...")
+                    input_text = f"Hasta şikayet: {comment[:100]}\nTedavi önerisi:"
+                    input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
+                    gen_tokens = model.generate(input_ids, max_new_tokens=50, do_sample=True, temperature=0.7)
+                    suggestion = tokenizer.decode(gen_tokens[0], skip_special_tokens=True)
+                    self.treatment_suggestions.append(suggestion.split("Tedavi önerisi:")[-1].strip())
+                except Exception as e:
+                    print(f"Tedavi önerisi oluşturulamadı: {e}")
+                    self.treatment_suggestions.append("Hata")
+            cleanup()
 
     def save_results(self):
+        print("\nSonuçlar kaydediliyor...")
         assert len(self.data_cleaned) == len(self.treatment_suggestions), "Veri uzunlukları eşleşmiyor!"
         self.data_cleaned['Alignment Score'] = self.alignment_scores
         self.data_cleaned['Treatment Suggestion'] = self.treatment_suggestions
-        self.data_cleaned['Few-Shot Count'] = self.few_shot_count
-        self.data_cleaned['Zero-Shot Count'] = self.zero_shot_count
-        self.data_cleaned.to_excel(self.output_path, index=False)
-        print(f"\n Sonuçlar başarıyla kaydedildi: {self.output_path}")
+        self.data_cleaned.to_excel(self.output_path, index=False, engine='openpyxl')
+        print(f"\nSonuçlar başarıyla kaydedildi: {self.output_path}")
 
     def run(self):
         self.load_and_clean_data()
@@ -159,14 +171,19 @@ class DentalAnalysis:
         self.save_results()
         cleanup()
 
-
 if __name__ == "__main__":
     TOKEN = "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"
     analysis = DentalAnalysis(
-        data_path="C:\\Users\\User\\Downloads\\dental-csv-excel.xlsx",
+        data_path="C:\\Users\\User\\Downloads\\test.xlsx",
         image_folder="C:\\Users\\User\\Downloads\\dental_project.v1i.yolov11\\train\\images",
         output_path="C:\\Users\\User\\Downloads\\cleaned_data_with_results.xlsx",
         token=TOKEN
     )
+
+    monitor_process = mp.Process(target=monitor_resources)
+    monitor_process.start()
+
     analysis.run()
+
+    monitor_process.terminate()
     cleanup()
