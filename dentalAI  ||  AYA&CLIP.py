@@ -8,6 +8,7 @@ import gc
 import psutil
 import time
 import torch.multiprocessing as mp
+from accelerate import load_checkpoint_and_dispatch
 
 # Bellek ve GPU önbelleği temizleme
 gc.collect()
@@ -61,6 +62,8 @@ class DentalAnalysis:
         self.alignment_scores = []
         self.missing_images = []
         self.treatment_suggestions = []
+        self.few_shot_count = 0
+        self.zero_shot_count = 0
 
     def load_and_clean_data(self):
         print("\nVeri seti yükleniyor ve temizleniyor...")
@@ -134,7 +137,7 @@ class DentalAnalysis:
             torch_dtype=torch.float16,
             device_map="auto",
             offload_folder="offload",
-            trust_remote_code=True
+            offload_state_dict=True
         )
         print("Model yüklemesi tamamlandı.")
 
@@ -144,10 +147,23 @@ class DentalAnalysis:
             for idx, comment in enumerate(batch['Comment']):
                 try:
                     print(f"[{i+idx+1}/{len(self.data_cleaned)}] Şu anda işlenen yorum: {comment[:50]}...")
-                    input_text = f"Hasta şikayet: {comment[:100]}\nTedavi önerisi:"
+                    input_text = f"Hasta şikayet: {comment}\nTedavi önerisi:"
                     input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
-                    gen_tokens = model.generate(input_ids, max_new_tokens=50, do_sample=True, temperature=0.7)
+                    print(f"Input IDs: {input_ids}")
+
+                    start_time = time.time()
+                    gen_tokens = model.generate(
+                        input_ids,
+                        max_new_tokens=100,
+                        do_sample=True,
+                        temperature=0.7
+                    )
+                    gen_time = time.time() - start_time
+                    print(f"Generate Time: {gen_time:.2f} seconds")
+                    print(f"Generated Tokens: {gen_tokens}")
+
                     suggestion = tokenizer.decode(gen_tokens[0], skip_special_tokens=True)
+                    print(f"Generated Suggestion: {suggestion}")
                     self.treatment_suggestions.append(suggestion.split("Tedavi önerisi:")[-1].strip())
                 except Exception as e:
                     print(f"Tedavi önerisi oluşturulamadı: {e}")
